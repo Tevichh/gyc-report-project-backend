@@ -1,0 +1,102 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model Cuenta {
+  id            Int       @id @default(autoincrement())
+  email         String    @unique
+  password      String    @db.VarChar(255)
+  createdAT     DateTime  @default(now())
+  
+  usuarioId     Int       @unique
+  usuario       Usuario   @relation(fields: [usuarioId], references: [id])
+}
+
+model Usuario {
+  id        Int       @id @default(autoincrement())
+  nombres   String    @db.VarChar(100)
+  apellidos String    @db.VarChar(100)
+  cedula    String    @unique @db.VarChar(20)
+  direccion String?   @db.VarChar(100)
+  telefono  String?   @db.VarChar(20)
+  cargo     String    @db.VarChar(50)
+  region    String?   @db.VarChar(50)
+  urlFoto   String    @db.VarChar(100) 
+  rol       Rol
+
+  cuenta    Cuenta?
+  reportes  Reportes[] 
+}
+
+enum Rol {
+  tecnico
+  administrador
+}
+
+model Reportes {
+  idReporte             Int                  @id @default(autoincrement())
+  fechaInicio           DateTime?           
+  fechafin              DateTime?           
+  tipoActividad         String?
+  NoTicket              String?
+  sistema               String?
+  zona                  String?
+  locacion              String?
+  cliente               String?
+  nombrePunto           String?
+  descripcionSolicitud  String?
+  descripcionActividad  String?
+  SolucionoRequimiento  Boolean?             @default(false)
+  nuevaIntervencion     Boolean?             @default(false)
+  estado                EstadoReporte
+
+  idTecnicoResponsable  Int
+  tecnicoResponsable    Usuario              @relation(fields: [idTecnicoResponsable], references: [id])
+
+  equiposIntervenidos   Equipos_Intervenidos[] 
+  anexoFotograficoUrls  Anexo_Fotografico[]
+}
+
+
+model Equipos_Intervenidos {
+  id                    Int                  @id @default(autoincrement())
+  equipo                String
+  serial                String
+  estado                EstadoEquipo
+  serialAnterior        String
+  reportId              Int
+  report                Reportes               @relation(fields: [reportId], references: [idReporte])
+
+}
+
+
+model Anexo_Fotografico {
+  id         Int     @id @default(autoincrement())
+  url        String?
+  reportId   Int
+  report     Reportes  @relation(fields: [reportId], references: [idReporte])
+
+}
+
+enum EstadoReporte {
+  Finalizado
+  Pendiente
+  En_Proceso
+  Cancelado
+}
+
+enum EstadoEquipo {
+  Cambio
+  Mantenimiento
+  Suministro_Retiro
+  No_Aplica
+}
+

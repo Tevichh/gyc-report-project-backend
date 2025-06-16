@@ -5,7 +5,7 @@ import { generateToken } from '../services/auth.service';
 
 export const register = async (req: Request, res: Response): Promise<void> => {
 
-    const { email, password, nombres, apellidos, cedula, direccion, telefono, cargo, rol, urlFoto, Foto } = req.body;
+    const { email, password, nombres, apellidos, cedula, direccion, telefono, cargo, rol, region, urlFoto } = req.body;
 
     try {
         //VALIDATE INPUTS
@@ -25,7 +25,7 @@ export const register = async (req: Request, res: Response): Promise<void> => {
         }
 
         //VALIDATE USER
-        if (!nombres || !apellidos || !cedula || !direccion || !telefono || !cargo || !rol || !urlFoto || !Foto) {
+        if (!nombres || !apellidos || !cedula || !direccion || !telefono || !cargo || !rol || !region || !urlFoto) {
             res.status(400).json({ message: 'All fields are required' });
             return;
         }
@@ -42,13 +42,14 @@ export const register = async (req: Request, res: Response): Promise<void> => {
                 telefono: telefono,
                 cargo: cargo,
                 rol: rol,
+                region: region,
                 cuenta: {
                     create: {
                         email,
                         password: passwordHashed,
                     }
                 },
-                urlFoto: urlFoto
+                urlFoto: ` 	../src/assets/fotosPerfil/${urlFoto}`
             }
         })
 

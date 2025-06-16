@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import { hashPassword } from "../services/password.service";
 import prisma from '../models/user'
 
 
@@ -10,9 +9,22 @@ export const getAllUsers = async (req: Request, res: Response): Promise<void> =>
                 id: {
                     not: 1
                 }
+            },
+            include: {
+                cuenta: {
+                    select: {
+                        email: true
+                    }
+                }
             }
         })
-        res.status(200).json(users);
+
+        const usersWithEmail = users.map(user => ({
+            ...user,
+            email: user.cuenta?.email || null
+        }));
+
+        res.status(200).json(usersWithEmail);
     } catch (error: any) {
         console.log(error)
         res.status(500).json({ error: 'Hubo un error, pruebe más tarde' })
@@ -25,46 +37,26 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
         const user = await prisma.usuario.findUnique({
             where: {
                 id: userId
+            },
+            include: {
+                cuenta: {
+                    select: {
+                        email: true
+                    }
+                }
             }
         })
         if (!user) {
             res.status(404).json({ error: 'El usuario no fue encontrado' })
             return
         }
-        res.status(200).json(user)
-    } catch (error: any) {
-        console.log(error)
-        res.status(500).json({ error: 'Hubo un error, pruebe más tarde' })
-    }
-}
 
+        const userWithEmail = {
+            ...user,
+            email: user.cuenta?.email || null
+        };
 
-
-
-/* 
-export const getAllUsers = async (req: Request, res: Response): Promise<void> => {
-    try {
-        const users = await prisma.user.findMany()
-        res.status(200).json(users);
-    } catch (error: any) {
-        console.log(error)
-        res.status(500).json({ error: 'Hubo un error, pruebe más tarde' })
-    }
-}
-
-export const getUserById = async (req: Request, res: Response): Promise<void> => {
-    const userId = parseInt(req.params.id)
-    try {
-        const user = await prisma.user.findUnique({
-            where: {
-                id: userId
-            }
-        })
-        if (!user) {
-            res.status(404).json({ error: 'El usuario no fue encontrado' })
-            return
-        }
-        res.status(200).json(user)
+        res.status(200).json(userWithEmail)
     } catch (error: any) {
         console.log(error)
         res.status(500).json({ error: 'Hubo un error, pruebe más tarde' })
@@ -72,61 +64,59 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 }
 
 export const updateUser = async (req: Request, res: Response): Promise<void> => {
-    const userId = parseInt(req.params.id)
-    const { email, password } = req.body
+    const userId = parseInt(req.params.id);
+    const { nombres, apellidos, direccion, telefono, cargo, rol, region } = req.body;
     try {
-
-        let dataToUpdate: any = { ...req.body }
-
-        if (password) {
-            const hashedPassword = await hashPassword(password)
-            dataToUpdate.password = hashedPassword
+        //VALIDATE INPUTS
+        if (!nombres || !apellidos || !direccion || !telefono || !cargo || !rol || !region) {
+            res.status(400).json({ message: 'Todos los campos son obligatorios' });
+            return;
         }
 
-        if (email) {
-            dataToUpdate.email = email
-        }
+        //UPDATE USER
+        const updatedUser = await prisma.usuario.update({
+            where: { id: userId },
+            data: {
+                nombres,
+                apellidos,
+                direccion,
+                telefono,
+                cargo,
+                rol,
+                region,
+            }
+        });
 
-        const user = await prisma.user.update({
-            where: {
-                id: userId
-            },
-            data: dataToUpdate
-        })
-
-        res.status(200).json(user)
+        res.status(200).json(updatedUser);
     } catch (error: any) {
-        if (error?.code === 'P2002' && error?.meta?.target?.includes('email')) {
-            res.status(400).json({ error: 'El email ingresado ya existe' })
-        } else if (error?.code == 'P2025') {
-            res.status(404).json('Usuario no encontrado')
-        } else {
-            console.log(error)
-            res.status(500).json({ error: 'Hubo un error, pruebe más tarde' })
-        }
+        console.error('Error updating user:', error);
+        res.status(500).json({ message: 'Internal server error' });
     }
+
 }
 
 export const deleteUser = async (req: Request, res: Response): Promise<void> => {
-    const userId = parseInt(req.params.id)
-    try {
-        await prisma.user.delete({
-            where: {
-                id: userId
-            }
-        })
+    const userId = parseInt(req.params.id);
 
-        res.status(200).json({
-            message: `El usuario ${userId} ha sido eliminado`
-        }).end()
-
-    } catch (error: any) {
-        if (error?.code == 'P2025') {
-            res.status(404).json('Usuario no encontrado')
-        } else {
-            console.log(error)
-            res.status(500).json({ error: 'Hubo un error, pruebe más tarde' })
-        }
+    if (userId === 1) {
+        res.status(400).json({ message: 'Cannot delete the admin user' });
+        return;
     }
 
-} */
+    try {
+
+        await prisma.cuenta.deleteMany({
+            where: { usuarioId: userId }
+        });
+
+        await prisma.usuario.delete({
+            where: { id: userId }
+        });
+
+
+        res.status(200).json({ message: 'User deleted successfully' });
+    } catch (error: any) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({ message: 'Internal server error' });
+    }
+};

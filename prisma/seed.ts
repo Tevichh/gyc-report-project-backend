@@ -4,7 +4,7 @@ import bcrypt from 'bcrypt';
 const prisma = new PrismaClient();
 
 async function main() {
-    const email = "admin@gyc.com";
+    const email = "admin@gyc.com.co";
     const passwordPlano = "admin123";
 
     // Verifica si ya existe

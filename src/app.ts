@@ -2,8 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import authRoutes from "./routes/authRoutes";
 import adminRoutes from "./routes/adminRoutes";
-import tecnicosRoute from "./routes/tecnicosRoute";
 import reportesRoute from "./routes/reportesRoute";
+import imagesRoute from "./routes/imagesRoute";
 
 const app = express();
 
@@ -12,8 +12,8 @@ app.use(cors());
 
 app.use("/auth", authRoutes)
 app.use("/admin", adminRoutes);
-app.use("/tecnicos", tecnicosRoute);
 app.use("/reportes", reportesRoute);
+app.use("/images", imagesRoute)
 
 
 export default app;

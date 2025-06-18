@@ -104,15 +104,40 @@ export const deleteUser = async (req: Request, res: Response): Promise<void> => 
     }
 
     try {
-
+        // Eliminar la cuenta del usuario
         await prisma.cuenta.deleteMany({
             where: { usuarioId: userId }
         });
 
+        // Obtener los reportes del técnico
+        const reportes = await prisma.reportes.findMany({
+            where: { idTecnicoResponsable: userId },
+            select: { idReporte: true }
+        });
+
+        const reporteIds = reportes.map(r => r.idReporte);
+
+        if (reporteIds.length > 0) {
+            // Eliminar anexos fotográficos
+            await prisma.anexo_Fotografico.deleteMany({
+                where: { reportId: { in: reporteIds } }
+            });
+
+            // Eliminar equipos intervenidos
+            await prisma.equipos_Intervenidos.deleteMany({
+                where: { reportId: { in: reporteIds } }
+            });
+
+            // Eliminar reportes
+            await prisma.reportes.deleteMany({
+                where: { idReporte: { in: reporteIds } }
+            });
+        }
+
+        // Finalmente eliminar el usuario
         await prisma.usuario.delete({
             where: { id: userId }
         });
-
 
         res.status(200).json({ message: 'User deleted successfully' });
     } catch (error: any) {

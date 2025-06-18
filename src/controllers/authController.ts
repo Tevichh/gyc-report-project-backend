@@ -113,7 +113,19 @@ export const login = async (req: Request, res: Response): Promise<void> => {
             return;
         }
 
-        res.status(200).json({ token, userId: user.usuarioId })
+        //GET ROLE
+        const userRole = await prisma.usuario.findUnique({
+            where: { id: user.usuarioId },
+            select: {
+                rol: true
+            }
+        });
+        if (!userRole) {
+            res.status(404).json({ error: 'User role not found' });
+            return;
+        }
+
+        res.status(200).json({ token, userId: user.usuarioId, rol: userRole.rol });
 
 
     } catch (error: any) {
